@@ -1,0 +1,12 @@
+{
+  "name": "alabasta",
+  "owner": { "name": "Alabasta" },
+  "plugins": [
+    {
+      "name": "alabasta",
+      "source": "./claude-plugin",
+      "description": "Read Alabasta tasks and submit enforced, structured resolutions (MCP + skill + Stop hook).",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { AlabastaClient, configFromEnv } from "./client.js";
+import { collectGitContext } from "./git.js";
 
 // A default task hint the CLI launcher can export so the agent knows its
 // assignment without being told (correlation via env).
@@ -35,6 +36,39 @@ const referencesSchema = z
     deployment: z.string().optional(),
   })
   .default({});
+
+// Enrichment (from alabasta_collect_git_context). All optional; pass through.
+const diffStatSchema = z.object({
+  filesChanged: z.number(),
+  additions: z.number(),
+  deletions: z.number(),
+  files: z.array(
+    z.object({
+      path: z.string(),
+      additions: z.number(),
+      deletions: z.number(),
+      status: z.string().optional(),
+    }),
+  ),
+});
+const commitSchema = z.object({
+  sha: z.string(),
+  subject: z.string(),
+  author: z.string().optional(),
+  committedAt: z.string().optional(),
+});
+const checkSchema = z.object({
+  name: z.string(),
+  status: z.string(),
+  conclusion: z.string().optional(),
+  url: z.string().optional(),
+});
+const pullRequestSchema = z.object({
+  number: z.number().optional(),
+  state: z.string().optional(),
+  title: z.string().optional(),
+  url: z.string().optional(),
+});
 
 function ok(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
@@ -106,6 +140,28 @@ async function main() {
   );
 
   server.registerTool(
+    "alabasta_collect_git_context",
+    {
+      title: "Collect Git/CI context",
+      description:
+        "Gather real diff stat, commits, PR state, and CI checks from the local repo (git + gh). Call before submitting and merge the result into alabasta_submit_task_resolution. Best-effort — missing pieces are omitted.",
+      inputSchema: {
+        baseRef: z
+          .string()
+          .optional()
+          .describe("Base ref to diff against (default: origin default branch, else HEAD~1)"),
+      },
+    },
+    async ({ baseRef }) => {
+      try {
+        return ok(collectGitContext(baseRef));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
     "alabasta_submit_task_resolution",
     {
       title: "Submit task resolution",
@@ -127,6 +183,10 @@ async function main() {
         limitations: z.array(z.string()).default([]),
         deferred: z.array(z.string()).default([]),
         references: referencesSchema,
+        diffStat: diffStatSchema.optional(),
+        commits: z.array(commitSchema).optional(),
+        checks: z.array(checkSchema).optional(),
+        pullRequest: pullRequestSchema.optional(),
         externalRunId: z.string().optional(),
         revision: z.number().optional(),
         provider: z.string().optional(),

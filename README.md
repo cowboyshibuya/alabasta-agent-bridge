@@ -61,6 +61,7 @@ claude mcp add alabasta \
 | `alabasta_get_task` | Read a task by `taskId` or `identifier` (e.g. `TOM-24`) |
 | `alabasta_list_my_tasks` | List tasks assigned to you, optional `status` filter |
 | `alabasta_start_task_work` | Move a task to *in progress* |
+| `alabasta_collect_git_context` | Gather real diff stat, commits, PR state, and CI checks (git + `gh`) to enrich the resolution |
 | `alabasta_submit_task_resolution` | Submit the structured resolution (→ *in review*) |
 | `alabasta_mark_ready_for_review` | Move a task to *in review* without a full resolution |
 | `alabasta_report_blocker` | Record why the task couldn't be completed |
@@ -97,7 +98,16 @@ Needs `ALABASTA_SITE_URL` + `ALABASTA_API_KEY` in the environment.
   twice, then allows the stop, so it can never trap a session. Task linkage comes from
   `ALABASTA_TASK_ID` or a branch name containing an identifier (e.g. `tom/TOM-24-fix`).
 
-Requires `python3` (stdlib only). Point Claude Code at the plugin directory, or copy
+Requires `python3` (stdlib only). Install it via the bundled marketplace:
+
+```
+/plugin marketplace add cowboyshibuya/alabasta-agent-bridge   # or a local path to this repo
+/plugin install alabasta@alabasta
+```
+
+The marketplace catalog is `.claude-plugin/marketplace.json` at the repo root; the plugin
+source is the self-contained `claude-plugin/` directory. (Relative-path sources need a git or
+local marketplace add, not a bare URL to the JSON file.) Alternatively, copy
 `hooks/hooks.json` into your `.claude/settings.json` and the skill into `.claude/skills/`.
 
 ## Develop

@@ -21,8 +21,11 @@ part of "done", not an afterthought.
    verification you run.
 4. **Verify.** Run the relevant tests/build/lint. Be honest about what you did and did not
    run.
-5. **Submit the resolution** with `alabasta_submit_task_resolution` before you finish.
-6. If you **cannot** complete it, call `alabasta_report_blocker` with the reason instead.
+5. **Collect Git context.** Call `alabasta_collect_git_context` and merge its
+   `diffStat` / `commits` / `checks` / `pullRequest` into the resolution payload — real diff
+   stats, commits, PR state, and CI results beat hand-written summaries.
+6. **Submit the resolution** with `alabasta_submit_task_resolution` before you finish.
+7. If you **cannot** complete it, call `alabasta_report_blocker` with the reason instead.
 
 You do **not** mark the task done and you do **not** edit the task description — submitting
 moves the task to review, and a human accepts it. That boundary is intentional.
@@ -43,6 +46,8 @@ Fill the structured fields — the model fills the slots, Alabasta renders them:
 - `limitations[]`: known constraints of the change.
 - `deferred[]`: work you deliberately left for later.
 - `references`: `{ branch?, commitSha?, pullRequest?, deployment? }`.
+- `diffStat` / `commits` / `checks` / `pullRequest`: **do not write these by hand** — pass
+  through whatever `alabasta_collect_git_context` returns (a snapshot at submit time).
 
 If a launcher set `ALABASTA_RUN_ID`, it is used as `externalRunId` so resubmitting the same
 run updates the same resolution instead of duplicating it. Bump `revision` for a new attempt.
