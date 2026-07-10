@@ -68,6 +68,21 @@ claude mcp add alabasta \
 Resolution submits are idempotent on `(taskId, externalRunId, revision)` — a
 resubmit updates the same record; a new `revision` creates a new attempt.
 
+## CLI launcher
+
+Bind a coding-agent session to a task in one command:
+
+```bash
+alabasta work TOM-24 --agent claude   # or --agent codex
+alabasta work TOM-24 --branch         # also cut a branch: tom/TOM-24-<slug>
+alabasta work TOM-24 --print          # print the env + command instead of launching
+```
+
+It fetches the task, mints a run id, exports `ALABASTA_TASK_ID` + `ALABASTA_RUN_ID`, and
+launches the agent with a priming prompt — the installed plugin (skill + MCP + Stop hook)
+takes it from there. `--print` is what the Alabasta UI's "Copy agent command" produces.
+Needs `ALABASTA_SITE_URL` + `ALABASTA_API_KEY` in the environment.
+
 ## Claude Code plugin (skill + enforcement)
 
 `claude-plugin/` bundles three layers so the feature is reliable, not just possible:
@@ -96,6 +111,5 @@ node dist/index.js
 ## Roadmap
 
 Done: MCP server (hands), resolution skill (training), Stop-hook enforcement
-(Claude Code). Next: Codex plugin packaging and an `alabasta work <TASK>` CLI
-launcher that fetches the task, creates a run, and exports
-`ALABASTA_TASK_ID`/`ALABASTA_RUN_ID`.
+(Claude Code), and the `alabasta work` CLI launcher. Next: Codex plugin
+packaging (same skill + hook adapted to Codex's manifest and hook format).

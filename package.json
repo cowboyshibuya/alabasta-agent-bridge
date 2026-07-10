@@ -4,7 +4,8 @@
   "description": "MCP server that connects coding agents (Claude Code, Codex) to Alabasta tasks — read a task and submit a structured resolution.",
   "type": "module",
   "bin": {
-    "alabasta-mcp": "dist/index.js"
+    "alabasta-mcp": "dist/index.js",
+    "alabasta": "dist/cli.js"
   },
   "files": [
     "dist"
