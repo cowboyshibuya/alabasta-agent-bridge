@@ -68,6 +68,23 @@ claude mcp add alabasta \
 Resolution submits are idempotent on `(taskId, externalRunId, revision)` — a
 resubmit updates the same record; a new `revision` creates a new attempt.
 
+## Claude Code plugin (skill + enforcement)
+
+`claude-plugin/` bundles three layers so the feature is reliable, not just possible:
+
+- **Hands** — `.mcp.json` wires the MCP server above (set `ALABASTA_SITE_URL` +
+  `ALABASTA_API_KEY` in your env).
+- **Training** — `skills/task-resolution/SKILL.md` teaches the agent the resolution
+  protocol, format, and invariants (preserve scope; separate verified from unverified; no
+  conversational text).
+- **Enforcement** — `hooks/stop.py` (a Stop hook) blocks the agent from finishing when it
+  edited code for a linked Alabasta task but never submitted a resolution. It nudges at most
+  twice, then allows the stop, so it can never trap a session. Task linkage comes from
+  `ALABASTA_TASK_ID` or a branch name containing an identifier (e.g. `tom/TOM-24-fix`).
+
+Requires `python3` (stdlib only). Point Claude Code at the plugin directory, or copy
+`hooks/hooks.json` into your `.claude/settings.json` and the skill into `.claude/skills/`.
+
 ## Develop
 
 ```bash
@@ -78,5 +95,7 @@ node dist/index.js
 
 ## Roadmap
 
-Next: a shared resolution skill + Stop-hook enforcement, packaged as Claude Code
-and Codex plugins, and an `alabasta work <TASK>` CLI launcher.
+Done: MCP server (hands), resolution skill (training), Stop-hook enforcement
+(Claude Code). Next: Codex plugin packaging and an `alabasta work <TASK>` CLI
+launcher that fetches the task, creates a run, and exports
+`ALABASTA_TASK_ID`/`ALABASTA_RUN_ID`.

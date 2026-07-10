@@ -1,0 +1,17 @@
+{
+  "description": "Alabasta resolution enforcement — blocks stop until a resolution is submitted for the linked task.",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.py\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
