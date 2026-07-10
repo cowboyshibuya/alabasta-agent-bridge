@@ -1,0 +1,20 @@
+# Alabasta ↔ Codex configuration.
+# Merge into ~/.codex/config.toml (user-level) or <repo>/.codex/config.toml
+# (project-level). Replace <deployment>, the API key, and /PATH/TO/... .
+
+# ── Hands: the Alabasta MCP server (same npm package as Claude Code) ──
+[mcp_servers.alabasta]
+command = "npx"
+args = ["-y", "@alabasta/mcp"]
+env = { ALABASTA_SITE_URL = "https://<deployment>.convex.site", ALABASTA_API_KEY = "alab_sk_..." }
+enabled = true
+
+# ── Enable lifecycle hooks (the Stop-hook enforcement is in codex/hooks.json) ──
+[features]
+hooks = true
+
+# ── Training: reuse the shared resolution skill ──
+# The skill is agent-agnostic; it physically lives in the claude-plugin/ dir.
+[[skills.config]]
+path = "/PATH/TO/alabasta-agent-bridge/claude-plugin/skills/task-resolution"
+enabled = true

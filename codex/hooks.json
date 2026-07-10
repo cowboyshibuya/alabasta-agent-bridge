@@ -1,0 +1,16 @@
+{
+  "description": "Alabasta resolution enforcement for Codex — same Stop hook as Claude Code.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/PATH/TO/alabasta-agent-bridge/claude-plugin/hooks/stop.py\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

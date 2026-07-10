@@ -16,8 +16,12 @@ import subprocess
 import sys
 import tempfile
 
-# Built-in edit tools (not MCP-namespaced) that mean "touched code".
-EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "Update", "ApplyPatch"}
+# Edit-tool names that mean "touched code", matched case-insensitively so this
+# works for Claude Code (Edit/Write/MultiEdit/NotebookEdit) and Codex
+# (apply_patch). We deliberately exclude bare "shell"/"bash" — too broad (reads).
+EDIT_TOOLS = {
+    "edit", "write", "multiedit", "notebookedit", "update", "applypatch", "apply_patch",
+}
 # Match the resolution tool regardless of MCP namespacing
 # (e.g. mcp__alabasta__alabasta_submit_task_resolution).
 SUBMIT_RE = re.compile(r"submit_task_resolution")
@@ -72,8 +76,17 @@ def iter_tool_names(transcript_path: str):
 
 def _walk(node):
     if isinstance(node, dict):
-        if node.get("type") == "tool_use" and isinstance(node.get("name"), str):
-            yield node["name"]
+        # Claude uses {"type":"tool_use","name":...}; Codex uses function_call /
+        # local_shell_call shapes, or a "tool_name" key. Treat a dict as a tool
+        # call if it names one and carries input/arguments.
+        name = node.get("name") or node.get("tool_name")
+        looks_like_call = (
+            str(node.get("type", "")).endswith(("tool_use", "call", "function"))
+            or "input" in node
+            or "arguments" in node
+        )
+        if isinstance(name, str) and looks_like_call:
+            yield name
         for v in node.values():
             yield from _walk(v)
     elif isinstance(node, list):
@@ -102,7 +115,7 @@ def main():
     edited = False
     submitted = False
     for name in iter_tool_names(transcript_path):
-        if name in EDIT_TOOLS:
+        if name.lower() in EDIT_TOOLS:
             edited = True
         if SUBMIT_RE.search(name) or BLOCKER_RE.search(name):
             submitted = True

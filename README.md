@@ -111,5 +111,6 @@ node dist/index.js
 ## Roadmap
 
 Done: MCP server (hands), resolution skill (training), Stop-hook enforcement
-(Claude Code), and the `alabasta work` CLI launcher. Next: Codex plugin
-packaging (same skill + hook adapted to Codex's manifest and hook format).
+(Claude Code **and** Codex — see [`codex/`](./codex)), and the `alabasta work`
+CLI launcher. Next: a marketplace-installable Claude Code plugin bundle, and
+enriching resolutions with real Git diff / CI / PR state.
