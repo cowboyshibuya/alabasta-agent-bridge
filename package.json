@@ -1,10 +1,10 @@
 {
   "name": "@alabasta/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server that connects coding agents (Claude Code, Codex) to Alabasta tasks — read a task and submit a structured resolution.",
   "type": "module",
   "bin": {
-    "alabasta-mcp": "dist/index.js",
+    "mcp": "dist/index.js",
     "alabasta": "dist/cli.js"
   },
   "files": [
