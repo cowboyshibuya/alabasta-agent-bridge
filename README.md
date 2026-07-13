@@ -121,6 +121,14 @@ node dist/index.js
 ## Roadmap
 
 Done: MCP server (hands), resolution skill (training), Stop-hook enforcement
-(Claude Code **and** Codex — see [`codex/`](./codex)), and the `alabasta work`
-CLI launcher. Next: a marketplace-installable Claude Code plugin bundle, and
-enriching resolutions with real Git diff / CI / PR state.
+(Claude Code **and** Codex — see [`codex/`](./codex)), the `alabasta work` CLI
+launcher, Git/CI/PR enrichment (`alabasta_collect_git_context`), and the
+marketplace-installable Claude Code plugin bundle. Next: a remote HTTP
+transport (enabling per-user OAuth) and automated CI publishing — see
+[DEVELOPMENT.md](./DEVELOPMENT.md#8-roadmap).
+
+## Contributing / maintaining this repo
+
+See [DEVELOPMENT.md](./DEVELOPMENT.md) — what MCP is, how the pieces fit together, how to
+add a new tool, and how to publish a new version (including the exact failure modes hit
+the first time and how to avoid them).
