@@ -6,7 +6,7 @@
 [mcp_servers.alabasta]
 command = "npx"
 args = ["-y", "@alabasta/mcp"]
-env = { ALABASTA_SITE_URL = "https://<deployment>.convex.site", ALABASTA_API_KEY = "alab_sk_..." }
+env = { ALABASTA_SITE_URL = "https://fearless-warthog-265.eu-west-1.convex.site", ALABASTA_API_KEY = "alab_sk_..." }
 enabled = true
 
 # ── Enable lifecycle hooks (the Stop-hook enforcement is in codex/hooks.json) ──
