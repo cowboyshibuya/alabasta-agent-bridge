@@ -317,7 +317,16 @@ means it isn't strictly required.
 
 ## 8. Roadmap
 
+Built: the **Context Runtime Phase 1** surface — `alabasta_get_context_package`
+(compiled, authority-ranked task brief with provenance), `alabasta_get_project_brief`,
+`alabasta_add_task_comment`, `alabasta_create_follow_up_task`, and the extended
+completion contract on `alabasta_submit_task_resolution` (`criteriaResults`,
+`discoveredWork`, `decisionsRequired`, `relatedEntityUpdates`). The compiler lives in
+`alabasta-beta/convex/contextRuntime.ts`; these tools are thin pass-throughs.
+
 Not yet built, in rough priority order:
+- **Context Runtime Phase 2** — MCP resources (`alabasta://…`) for on-demand reads,
+  workspace context search, contradiction surfacing, context-quality score.
 - **Remote HTTP (Streamable) transport** — a hosted server instead of stdio, enabling OAuth
   per-user identity instead of a static workspace API key. The bigger architectural move; see
   the "recommended architecture" discussion in `alabasta-beta/docs/agent-resolution.md`.
