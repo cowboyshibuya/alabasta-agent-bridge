@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { AlabastaClient, configFromEnv } from "./client.js";
@@ -106,7 +107,7 @@ function fail(err: unknown) {
 
 async function main() {
   const client = new AlabastaClient(configFromEnv());
-  const server = new McpServer({ name: "alabasta", version: "0.2.0" });
+  const server = new McpServer({ name: "alabasta", version: "0.3.0" });
 
   server.registerTool(
     "alabasta_get_task",
@@ -375,8 +376,65 @@ async function main() {
     },
   );
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  server.registerTool(
+    "alabasta_search_context",
+    {
+      title: "Search workspace context",
+      description:
+        "Ranked search across tasks, projects, decisions, and memory items. Returns alabasta:// URIs — read the full content via the matching MCP resource. Use for anything not already linked in the context package.",
+      inputSchema: {
+        query: z.string(),
+        productId: z.string().optional().describe("Restrict to one product"),
+        limit: z.number().optional().describe("Max results (default 10, max 25)"),
+      },
+    },
+    async ({ query, productId, limit }) => {
+      try {
+        return ok(await client.call("context.search", { query, productId, limit }));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  // ── Progressive context (Layer 3): alabasta:// resources ─────────────────────
+  // The context package's contextIndex points at these; every read funnels to
+  // the backend's resource.read endpoint, which returns markdown + provenance.
+  const RESOURCE_TEMPLATES: Array<[name: string, template: string, title: string]> = [
+    ["alabasta-task", "alabasta://tasks/{id}", "Alabasta task (full description)"],
+    ["alabasta-task-context", "alabasta://tasks/{id}/context", "Compiled context package"],
+    ["alabasta-task-discussion", "alabasta://tasks/{id}/discussion", "Task discussion thread"],
+    ["alabasta-task-criteria", "alabasta://tasks/{id}/criteria", "Task acceptance criteria"],
+    ["alabasta-decision", "alabasta://decisions/{id}", "Decision (summary, reasoning, tradeoffs)"],
+    ["alabasta-project", "alabasta://projects/{id}/brief", "Project brief"],
+    ["alabasta-memory", "alabasta://memories/{id}", "Workspace memory item"],
+    ["alabasta-file", "alabasta://files/{id}", "Attachment metadata + URL"],
+    ["alabasta-document", "alabasta://documents/{id}", "Document content"],
+  ];
+  for (const [name, template, title] of RESOURCE_TEMPLATES) {
+    server.registerResource(
+      name,
+      new ResourceTemplate(template, { list: undefined }),
+      { title },
+      async (uri) => {
+        const result = (await client.call("resource.read", { uri: uri.href })) as {
+          text: string;
+          mimeType?: string;
+        };
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: result.mimeType ?? "text/markdown",
+              text: result.text,
+            },
+          ],
+        };
+      },
+    );
+  }
+
+  const transport = new StdioServerTransport();  await server.connect(transport);
   // stdio is the protocol channel; log to stderr only.
   console.error("alabasta-mcp ready");
 }

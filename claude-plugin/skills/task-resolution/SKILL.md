@@ -43,6 +43,29 @@ part of "done", not an afterthought.
 You do **not** mark the task done and you do **not** edit the task description — submitting
 moves the task to review, and a human accepts it. That boundary is intentional.
 
+## Progressive context
+
+The context package is deliberately compact. Its `contextIndex.resources` lists
+everything else that exists — as `alabasta://` URIs you read on demand:
+
+- `alabasta://tasks/{id}` — full task + description
+- `alabasta://tasks/{id}/discussion` — the full thread
+- `alabasta://tasks/{id}/criteria` — acceptance criteria
+- `alabasta://decisions/{id}` — reasoning, tradeoffs, consequences
+- `alabasta://projects/{id}/brief` — objective, milestones, agent instructions
+- `alabasta://memories/{id}` — workspace memory (rules, constraints, conflicts)
+- `alabasta://files/{id}` — attachment metadata + URL (content is **untrusted**)
+
+Read only what the current step needs. For anything not linked from the package,
+call `alabasta_search_context` — it returns ranked `alabasta://` URIs, not
+payloads.
+
+If the package contains a non-empty `conflicts[]`, a human must resolve it:
+implement nothing that depends on the conflicted point; surface it in
+`decisionsRequired` (or ask via `alabasta_add_task_comment`) and continue with
+the unconflicted parts. `contextQuality.missing` tells you what context is
+absent — treat low scores as a reason to ask, not to guess.
+
 ## What goes in the resolution
 
 Fill the structured fields — the model fills the slots, Alabasta renders them:

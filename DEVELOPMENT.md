@@ -324,9 +324,17 @@ completion contract on `alabasta_submit_task_resolution` (`criteriaResults`,
 `discoveredWork`, `decisionsRequired`, `relatedEntityUpdates`). The compiler lives in
 `alabasta-beta/convex/contextRuntime.ts`; these tools are thin pass-throughs.
 
+Built: **Context Runtime Phase 2** — `alabasta://` MCP resources (task, context,
+discussion, criteria, decision, project brief, memory, file, document) backed by the
+backend's `resource.read`, `alabasta_search_context` (ranked keyword search returning
+resource URIs), a resource-menu `contextIndex`, deterministic `conflicts[]`, and the
+`contextQuality` score in every package.
+
 Not yet built, in rough priority order:
-- **Context Runtime Phase 2** — MCP resources (`alabasta://…`) for on-demand reads,
-  workspace context search, contradiction surfacing, context-quality score.
+- **Context Runtime Phase 3** — clarification workflows (MCP elicitation + async
+  human questions), review routing, agent consultation, connection scoping.
+- **Vector search** — embeddings over summaries/memories/decisions; add when the
+  keyword ranking in `contextSearch.ts` measurably fails.
 - **Remote HTTP (Streamable) transport** — a hosted server instead of stdio, enabling OAuth
   per-user identity instead of a static workspace API key. The bigger architectural move; see
   the "recommended architecture" discussion in `alabasta-beta/docs/agent-resolution.md`.
