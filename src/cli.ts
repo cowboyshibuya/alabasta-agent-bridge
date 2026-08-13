@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 // alabasta work <TASK> [--agent claude|codex] [--branch] [--print]
-// Binds a coding-agent session to an Alabasta task: fetches the task, mints a run
-// id, optionally creates a branch, exports ALABASTA_TASK_ID / ALABASTA_RUN_ID, and
-// launches the agent. The installed plugin (skill + MCP + Stop hook) does the rest.
+// alabasta rules sync [--target agents_md|claude_md|cursor] [--scope <scope>] [--check]
+//
+// `work` binds a coding-agent session to an Alabasta task: fetches the task, mints
+// a run id, optionally creates a branch, exports ALABASTA_TASK_ID / ALABASTA_RUN_ID,
+// and launches the agent. The installed plugin (skill + MCP + Stop hook) does the rest.
+//
+// `rules sync` writes the emitted rules file. Alabasta is the compiler; the file
+// in the repo is a build artifact — `--check` compares its digest against the
+// workspace and fails on drift.
 import { spawnSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { AlabastaClient, configFromEnv } from "./client.js";
 
 interface Args {
@@ -35,7 +43,72 @@ function parseArgs(argv: string[]): Args {
 function die(msg: string): never {
   console.error(`alabasta: ${msg}`);
   console.error(`\nUsage: alabasta work <TASK> [--agent claude|codex] [--branch] [--print]`);
+  console.error(`       alabasta rules sync [--target agents_md|claude_md|cursor] [--scope <scope>] [--check]`);
   process.exit(1);
+}
+
+// ── rules sync ────────────────────────────────────────────────────────────────
+
+interface EmitResult {
+  target: string;
+  scope: string;
+  filename: string | null;
+  digest: string;
+  ruleCount: number;
+  content: string;
+}
+
+const DIGEST_RE = /<!--\s*Alabasta emit\s*·\s*digest\s+(sha256:[a-f0-9]{64})/;
+
+/** Digest from an on-disk emit file. Null when absent or hand-written. */
+function onDiskDigest(path: string): string | null {
+  try {
+    return readFileSync(path, "utf8").match(DIGEST_RE)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function rulesSync(argv: string[]) {
+  let target = "agents_md";
+  let scope = "workspace";
+  let check = false;
+  const rest = [...argv];
+  if (rest[0] === "sync") rest.shift();
+  while (rest.length) {
+    const a = rest.shift()!;
+    if (a === "--target") target = rest.shift() ?? die("--target needs a value");
+    else if (a === "--scope") scope = rest.shift() ?? die("--scope needs a value");
+    else if (a === "--check") check = true;
+    else die(`Unknown argument: ${a}`);
+  }
+
+  const client = new AlabastaClient(configFromEnv());
+  const emit = await client.call<EmitResult>("rules.emit", { target, scope });
+  if (!emit.filename) {
+    die(`target "${target}" has no file — it is delivered in the task context package`);
+  }
+  const path = join(process.cwd(), emit.filename);
+
+  if (check) {
+    const local = onDiskDigest(path);
+    if (local === emit.digest) {
+      console.error(`alabasta: ${emit.filename} is up to date (${emit.ruleCount} rules)`);
+      return;
+    }
+    console.error(
+      local === null
+        ? `alabasta: ${emit.filename} has no Alabasta emit header — run 'alabasta rules sync' to generate it.`
+        : `alabasta: ${emit.filename} has drifted.\n  on disk:   ${local}\n  workspace: ${emit.digest}\n  Run 'alabasta rules sync' to regenerate — local edits are overwritten.`,
+    );
+    process.exit(1);
+  }
+
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, emit.content, "utf8");
+  console.error(
+    `alabasta: wrote ${emit.filename} — ${emit.ruleCount} rule${emit.ruleCount === 1 ? "" : "s"} · ${emit.digest.slice(0, 19)}…`,
+  );
 }
 
 function slugify(s: string): string {
@@ -52,7 +125,10 @@ function runId(): string {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv[0] === "rules") return rulesSync(argv.slice(1));
+
+  const args = parseArgs(argv);
   if (!args.task) die("a task id or identifier is required");
 
   const client = new AlabastaClient(configFromEnv());

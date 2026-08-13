@@ -43,15 +43,15 @@ src/
   client.ts   — AlabastaClient: thin fetch wrapper over Alabasta's /agent/v1/* HTTP API
   index.ts    — the MCP server itself: registers tools, wires each to an HTTP call
   git.ts      — collectGitContext(): local git/gh introspection (no network beyond gh)
-  cli.ts      — the `alabasta work <TASK>` launcher (a separate bin, not an MCP tool)
+  cli.ts      — `alabasta work <TASK>` launcher + `alabasta rules sync` (a separate bin, not MCP tools)
 
-claude-plugin/         — Claude Code plugin: bundles the MCP config + skill + Stop hook
+claude-plugin/         — Claude Code plugin: bundles the MCP config + skill + hooks
   .claude-plugin/plugin.json
   .mcp.json             — tells Claude Code how to launch the server (npx -y @alabasta/mcp)
   skills/task-resolution/SKILL.md
-  hooks/{hooks.json,stop.py}
+  hooks/{hooks.json,stop.py,rules_drift.py}
 
-codex/                  — same skill + hook, Codex's TOML config format instead of plugin.json
+codex/                  — same skill + hooks, Codex's TOML config format instead of plugin.json
 .claude-plugin/marketplace.json  — makes claude-plugin/ installable via `/plugin marketplace add`
 ```
 
@@ -207,6 +207,10 @@ rather than throwing) and have `index.ts` call it directly instead of going thro
   `AlabastaClient` (same as the server) to fetch the task, then `spawnSync`s the agent binary
   with a priming prompt and the two correlation env vars set. Add flags in `parseArgs`; keep
   it a thin launcher — real behavior belongs in the skill/hook, not here.
+  `alabasta rules sync` is the second subcommand: it POSTs `rules.emit` and writes the
+  returned content to disk. The digest lives in the file's header comment; `--check` parses
+  it back out and compares. Keep the rendering server-side — the CLI must never assemble a
+  rules file itself, or the digest stops meaning "this came from the workspace".
 - **Skill (`claude-plugin/skills/task-resolution/SKILL.md`)** — plain markdown the agent reads
   as instructions. Edit directly; no build step. Keep the "worked example" JSON block in sync
   with the actual `alabasta_submit_task_resolution` schema in `index.ts`.
@@ -222,8 +226,18 @@ rather than throwing) and have `index.ts` call it directly instead of going thro
   ```
   No output + exit 0 = allow. JSON `{"decision":"block",...}` on stdout = block. It fails
   open on any error by design — never make it fail closed.
+- **Rules drift hook (`claude-plugin/hooks/rules_drift.py`)** — a SessionStart hook, same
+  stdlib-only discipline. It POSTs `rules.emit`, compares the returned digest with the one in
+  the repo's `AGENTS.md` header, and prints a warning on mismatch. It **never** blocks and
+  always exits 0: a rules check is not worth trapping work over, and a workspace with no
+  credentials in the env must degrade to silence, not noise. Test it the same way:
+  ```bash
+  echo '{"cwd":"'"$(pwd)"'"}' | ALABASTA_SITE_URL=… ALABASTA_API_KEY=… \
+    python3 claude-plugin/hooks/rules_drift.py
+  ```
+  Override the file it checks with `ALABASTA_RULES_TARGET` / `ALABASTA_RULES_SCOPE`.
 - **Codex packaging (`codex/`)** — mirrors the Claude plugin but in Codex's format
-  (`config.toml` + `hooks.json`). It references the **same** `claude-plugin/hooks/stop.py` and
+  (`config.toml` + `hooks.json`). It references the **same** `claude-plugin/hooks/*.py` and
   `claude-plugin/skills/task-resolution/` — there is deliberately only one copy of each; don't
   fork them per-agent.
 
@@ -330,9 +344,19 @@ backend's `resource.read`, `alabasta_search_context` (ranked keyword search retu
 resource URIs), a resource-menu `contextIndex`, deterministic `conflicts[]`, and the
 `contextQuality` score in every package.
 
+Built: **Layer 0 — standing context** — `alabasta_get_standing_context`,
+`alabasta_read_rule`, `alabasta_propose_rule`, `alabasta_emit_rules`, the
+`alabasta://rules/{id}` + `alabasta://standing/context` resources, the
+`alabasta rules sync [--check]` CLI, the `rules_drift.py` SessionStart hook, and
+`rulesApplied` / `rulesConflicted` on the resolution. Rules are derived state signed
+by humans in Alabasta (**Workspace settings → Rules**); the backend lives in
+`alabasta-beta/convex/rules.ts` and `alabasta-beta/lib/rules-emit.ts`.
+
 Not yet built, in rough priority order:
 - **Context Runtime Phase 3** — clarification workflows (MCP elicitation + async
   human questions), review routing, agent consultation, connection scoping.
+- **Rule scope inheritance** — `repo`/`path` rules currently reach agents only via the
+  emitted file; resolving them per-session needs the agent to declare its repo.
 - **Vector search** — embeddings over summaries/memories/decisions; add when the
   keyword ranking in `contextSearch.ts` measurably fails.
 - **Remote HTTP (Streamable) transport** — a hosted server instead of stdio, enabling OAuth

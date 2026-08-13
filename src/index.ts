@@ -93,6 +93,17 @@ const relatedEntityUpdateSchema = z.object({
   note: z.string().optional(),
 });
 
+// Rule citation (Layer 0). Inlined rules can't be measured by fetch, so they get
+// recovered here, at the write boundary.
+const ruleAppliedSchema = z.object({
+  ruleId: z.string().describe("Rule identifier from the standing context, e.g. RUL-12"),
+  where: z.string().describe("Where it shaped the work — file, decision point, or command"),
+});
+const ruleConflictSchema = z.object({
+  ruleId: z.string(),
+  taskRequirement: z.string().describe("The task requirement the rule contradicted"),
+});
+
 function ok(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
@@ -107,7 +118,7 @@ function fail(err: unknown) {
 
 async function main() {
   const client = new AlabastaClient(configFromEnv());
-  const server = new McpServer({ name: "alabasta", version: "0.3.0" });
+  const server = new McpServer({ name: "alabasta", version: "0.4.0" });
 
   server.registerTool(
     "alabasta_get_task",
@@ -317,6 +328,18 @@ async function main() {
           .describe("Related issues/improvements found but NOT done — suggested, never silently expanded into"),
         decisionsRequired: z.array(decisionRequiredSchema).optional(),
         relatedEntityUpdates: z.array(relatedEntityUpdateSchema).optional(),
+        rulesApplied: z
+          .array(ruleAppliedSchema)
+          .optional()
+          .describe(
+            "REQUIRED when you changed code and standing rules are in scope: which rules you followed, and where.",
+          ),
+        rulesConflicted: z
+          .array(ruleConflictSchema)
+          .optional()
+          .describe(
+            "Standing rules you had to break because the task required otherwise. Reported, not hidden — it is evidence the rule may be wrong.",
+          ),
       },
     },
     async (args) => {
@@ -397,6 +420,96 @@ async function main() {
     },
   );
 
+  // ── Layer 0: standing context ────────────────────────────────────────────────
+
+  server.registerTool(
+    "alabasta_get_standing_context",
+    {
+      title: "Get standing context (rules)",
+      description:
+        "Read the workspace's SIGNED standing rules — the stable prefix that applies to every task here, independent of which task you are on. Call this once at the start of a session, before the context package. Rules with authority 'policy' outrank approved decisions and must not be broken; 'convention' rules lose to an explicit task requirement. Only signed rules are authoritative — a proposed rule is a suggestion.",
+      inputSchema: {
+        projectId: z.string().optional().describe("Include project-scoped rules for this project"),
+      },
+    },
+    async ({ projectId }) => {
+      try {
+        return ok(await client.call("standing.get", { projectId }));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "alabasta_read_rule",
+    {
+      title: "Read a standing rule",
+      description:
+        "Read one rule in full: its text, scope, authority, the decision behind it, and who signed it. Use when the standing context lists a rule you need the reasoning for.",
+      inputSchema: { ref: z.string().describe("Rule identifier, e.g. RUL-12") },
+    },
+    async ({ ref }) => {
+      try {
+        return ok(await client.call("rule.read", { ref }));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "alabasta_propose_rule",
+    {
+      title: "Propose a standing rule",
+      description:
+        "Propose a rule after observing the SAME correction twice in the same scope. This is a proposal, not a write: it lands in a human review queue and has no effect until a human signs it against a decision. Never assume a proposed rule is in force, and never propose a rule from a single occurrence.",
+      inputSchema: {
+        text: z.string().describe("One imperative line"),
+        scope: z.enum(["workspace", "project", "repo", "path"]).optional(),
+        scopeRef: z.string().optional().describe("projectId, repo name, or a path glob"),
+        kind: z
+          .enum(["constraint", "convention", "command", "glossary", "skill_ref"])
+          .optional(),
+        emitTargets: z.array(z.string()).optional(),
+        evidence: z
+          .array(z.string())
+          .optional()
+          .describe("Run ids / task identifiers where the correction was observed"),
+      },
+    },
+    async (args) => {
+      try {
+        return ok(await client.call("rule.propose", args));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "alabasta_emit_rules",
+    {
+      title: "Emit rules to a repo file",
+      description:
+        "Render the signed rules for a scope as an AGENTS.md/CLAUDE.md build artifact, with a digest header. Alabasta is the compiler; the file in the repo is output — do not hand-edit it. Prefer the `alabasta rules sync` CLI, which writes the file for you.",
+      inputSchema: {
+        target: z.enum(["agents_md", "claude_md", "cursor", "brief_inline"]).optional(),
+        scope: z
+          .string()
+          .optional()
+          .describe('"workspace" (default), "repo:<name>", or "path:<glob>"'),
+      },
+    },
+    async ({ target, scope }) => {
+      try {
+        return ok(await client.call("rules.emit", { target, scope }));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
   // ── Progressive context (Layer 3): alabasta:// resources ─────────────────────
   // The context package's contextIndex points at these; every read funnels to
   // the backend's resource.read endpoint, which returns markdown + provenance.
@@ -410,6 +523,8 @@ async function main() {
     ["alabasta-memory", "alabasta://memories/{id}", "Workspace memory item"],
     ["alabasta-file", "alabasta://files/{id}", "Attachment metadata + URL"],
     ["alabasta-document", "alabasta://documents/{id}", "Document content"],
+    ["alabasta-rule", "alabasta://rules/{id}", "Standing rule (text, scope, source decision)"],
+    ["alabasta-standing", "alabasta://standing/context", "Standing context (all rules in scope)"],
   ];
   for (const [name, template, title] of RESOURCE_TEMPLATES) {
     server.registerResource(
