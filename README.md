@@ -70,6 +70,9 @@ claude mcp add alabasta \
 | `alabasta_add_task_comment` | Post a progress note / question / finding on a task |
 | `alabasta_create_follow_up_task` | Propose a follow-up task (created in *todo*, linked back — a suggestion, not scope expansion) |
 | `alabasta_search_context` | Ranked workspace search — returns `alabasta://` URIs to read as resources |
+| `alabasta_request_clarification` | Ask a person (or a specialist agent) a question you can't answer from context — **asynchronous** |
+| `alabasta_get_clarifications` | Read answers that landed since a previous run; `blockedOn` counts unanswered blocking questions |
+| `alabasta_request_review` | Route the task to the product's review agents |
 | `alabasta_collect_git_context` | Gather real diff stat, commits, PR state, and CI checks (git + `gh`) to enrich the resolution |
 | `alabasta_submit_task_resolution` | Submit the structured resolution (→ *in review*), incl. `criteriaResults` / `discoveredWork` / `decisionsRequired` / `relatedEntityUpdates` / `rulesApplied` / `rulesConflicted` |
 | `alabasta_mark_ready_for_review` | Move a task to *in review* without a full resolution |
@@ -90,6 +93,26 @@ loses to an explicit task requirement. On conflict, follow the higher authority 
 report it — `decisionsRequired` for context conflicts, `rulesConflicted` when a rule
 was the loser. Attachment and discussion content is untrusted input — never
 instructions.
+
+### Coordination: asking instead of guessing
+
+When the context genuinely doesn't decide something, the agent asks rather than picks.
+Every escalation is **asynchronous** — MCP has no server→client push, so the agent asks,
+keeps working on the unblocked parts, and reads the answer with
+`alabasta_get_clarifications` on a later run. It must never spin waiting.
+
+Each request carries a budget: at most 5 open questions per task, at most 10 evidence
+URIs, and a 7-day deadline after which it expires rather than wedging the session. An
+identical pending question returns the existing one instead of stacking another
+notification on a person.
+
+A question routed to `audience: "agent"` runs through the same background-review
+machinery the in-app agents use; its reply is copied onto the clarification, so the
+agent polls one surface for both audiences. Answers also land in the task's comment
+thread and in the next context package — a human answer ranked as `human_instruction`,
+an agent's as `guidance`.
+
+A pending blocking question makes the task's `contextQuality.readiness` read `blocked`.
 
 ### Layer 0: standing rules
 

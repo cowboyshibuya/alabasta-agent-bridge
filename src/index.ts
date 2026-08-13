@@ -118,7 +118,7 @@ function fail(err: unknown) {
 
 async function main() {
   const client = new AlabastaClient(configFromEnv());
-  const server = new McpServer({ name: "alabasta", version: "0.4.0" });
+  const server = new McpServer({ name: "alabasta", version: "0.5.0" });
 
   server.registerTool(
     "alabasta_get_task",
@@ -414,6 +414,102 @@ async function main() {
     async ({ query, productId, limit }) => {
       try {
         return ok(await client.call("context.search", { query, productId, limit }));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  // ── Coordination: ask instead of guessing ────────────────────────────────────
+
+  server.registerTool(
+    "alabasta_request_clarification",
+    {
+      title: "Ask a question about the task",
+      description:
+        "Ask a question you cannot answer from the context — a contradiction between sources, a missing requirement, an ambiguous acceptance criterion. Routes to a person (audience 'human') or a specialist agent (audience 'agent'), and is recorded on the task for the team. NOTHING IS PUSHED BACK TO YOU: after asking, stop work on the blocked part and call alabasta_get_clarifications on a later run — do not wait in-process or poll in a loop. Prefer this over guessing on anything that would be expensive to get wrong; do not use it for things the context package already answers.",
+      inputSchema: {
+        taskId: z.string().optional(),
+        question: z.string().describe("One specific, answerable question"),
+        audience: z
+          .enum(["human", "agent"])
+          .optional()
+          .describe("Who should answer. Defaults to human."),
+        requestedFromUserId: z.string().optional().describe("Address a specific person"),
+        requestedFromAgentId: z.string().optional().describe("Address a specific agent"),
+        blocking: z
+          .boolean()
+          .optional()
+          .describe("True (default) when you stopped work on this. False for a note."),
+        evidence: z
+          .array(z.string())
+          .optional()
+          .describe("alabasta:// URIs the question is about"),
+      },
+    },
+    async (args) => {
+      try {
+        return ok(
+          await client.call("clarification.request", {
+            ...args,
+            taskId: args.taskId ?? DEFAULT_TASK_ID,
+            externalRunId: process.env.ALABASTA_RUN_ID,
+          }),
+        );
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "alabasta_get_clarifications",
+    {
+      title: "Check for answers",
+      description:
+        "Read the questions asked on this task and any answers that have landed. Call this at the START of a session on a task you previously asked about — an answer is a direct human instruction and outranks discussion and inferred context. `blockedOn` counts unanswered blocking questions: if it is above zero, do not implement the blocked part.",
+      inputSchema: {
+        taskId: z.string().optional(),
+        includeResolved: z
+          .boolean()
+          .optional()
+          .describe("Include dismissed and expired questions too"),
+      },
+    },
+    async ({ taskId, includeResolved }) => {
+      try {
+        return ok(
+          await client.call("clarification.list", {
+            taskId: taskId ?? DEFAULT_TASK_ID,
+            includeResolved,
+          }),
+        );
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "alabasta_request_review",
+    {
+      title: "Request a review",
+      description:
+        "Route this task to the product's review agents — for a design, technical, scope, or QA look at the work. Use when the task's own policy calls for review, or when your change touches something outside your confidence. This does not replace the human accept: submitting a resolution still moves the task to review for a person.",
+      inputSchema: {
+        taskId: z.string().optional(),
+        question: z
+          .string()
+          .optional()
+          .describe("What the reviewers should focus on"),
+        reviewerAgentIds: z.array(z.string()).optional(),
+      },
+    },
+    async (args) => {
+      try {
+        return ok(
+          await client.call("review.request", { ...args, taskId: args.taskId ?? DEFAULT_TASK_ID }),
+        );
       } catch (e) {
         return fail(e);
       }

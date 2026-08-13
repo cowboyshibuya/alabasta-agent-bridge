@@ -352,9 +352,18 @@ Built: **Layer 0 — standing context** — `alabasta_get_standing_context`,
 by humans in Alabasta (**Workspace settings → Rules**); the backend lives in
 `alabasta-beta/convex/rules.ts` and `alabasta-beta/lib/rules-emit.ts`.
 
+Built: **Context Runtime Phase 3 (coordination core)** — `alabasta_request_clarification`
+(human or agent audience), `alabasta_get_clarifications`, `alabasta_request_review`.
+Backed by `alabasta-beta/convex/taskCoordination.ts`; agent consultations reuse the
+existing `entityReviewModel` background-review machinery, and their replies are copied
+onto the clarification by `resolveConsultations` in that file.
+
 Not yet built, in rough priority order:
-- **Context Runtime Phase 3** — clarification workflows (MCP elicitation + async
-  human questions), review routing, agent consultation, connection scoping.
+- **MCP elicitation** — for questions the *current* user can answer in-session, rather
+  than the async round trip. Needs client support; the async path is the fallback and
+  is what works today.
+- **Phase 3 remainder** — multi-agent workflows, task bundles, background runs,
+  event-triggered workflows, connection scoping, agent-performance analytics.
 - **Rule scope inheritance** — `repo`/`path` rules currently reach agents only via the
   emitted file; resolving them per-session needs the agent to declare its repo.
 - **Vector search** — embeddings over summaries/memories/decisions; add when the
