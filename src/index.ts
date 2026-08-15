@@ -332,13 +332,13 @@ async function main() {
           .array(ruleAppliedSchema)
           .optional()
           .describe(
-            "REQUIRED when you changed code and standing rules are in scope: which rules you followed, and where.",
+            "REQUIRED and non-empty whenever you changed code: valid in-scope rules you followed, and where.",
           ),
         rulesConflicted: z
           .array(ruleConflictSchema)
           .optional()
           .describe(
-            "Standing rules you had to break because the task required otherwise. Reported, not hidden — it is evidence the rule may be wrong.",
+            "REQUIRED whenever you changed code; use [] when none conflicted.",
           ),
       },
     },
@@ -525,12 +525,15 @@ async function main() {
       description:
         "Read the workspace's SIGNED standing rules — the stable prefix that applies to every task here, independent of which task you are on. Call this once at the start of a session, before the context package. Rules with authority 'policy' outrank approved decisions and must not be broken; 'convention' rules lose to an explicit task requirement. Only signed rules are authoritative — a proposed rule is a suggestion.",
       inputSchema: {
+        productId: z.string().optional().describe("Include product-scoped rules for this product"),
         projectId: z.string().optional().describe("Include project-scoped rules for this project"),
+        repo: z.string().optional().describe("Optional workspace-unique repository slug"),
+        path: z.string().optional().describe("Optional repository-relative path"),
       },
     },
-    async ({ projectId }) => {
+    async ({ productId, projectId, repo, path }) => {
       try {
-        return ok(await client.call("standing.get", { projectId }));
+        return ok(await client.call("standing.get", { productId, projectId, repo, path }));
       } catch (e) {
         return fail(e);
       }
@@ -562,12 +565,12 @@ async function main() {
         "Propose a rule after observing the SAME correction twice in the same scope. This is a proposal, not a write: it lands in a human review queue and has no effect until a human signs it against a decision. Never assume a proposed rule is in force, and never propose a rule from a single occurrence.",
       inputSchema: {
         text: z.string().describe("One imperative line"),
-        scope: z.enum(["workspace", "project", "repo", "path"]).optional(),
-        scopeRef: z.string().optional().describe("projectId, repo name, or a path glob"),
+        scope: z.enum(["workspace", "product", "project", "repo", "path"]).optional(),
+        scopeRef: z.string().optional().describe("productId, projectId, repo slug, or path glob"),
         kind: z
-          .enum(["constraint", "convention", "command", "glossary", "skill_ref"])
+          .enum(["constraint", "convention", "command", "glossary"])
           .optional(),
-        emitTargets: z.array(z.string()).optional(),
+        emitTargets: z.array(z.enum(["agents_md", "claude_md", "brief_inline", "commit_msg", "pr_title", "repo_detect"])).optional(),
         evidence: z
           .array(z.string())
           .optional()
@@ -590,11 +593,11 @@ async function main() {
       description:
         "Render the signed rules for a scope as an AGENTS.md/CLAUDE.md build artifact, with a digest header. Alabasta is the compiler; the file in the repo is output — do not hand-edit it. Prefer the `alabasta rules sync` CLI, which writes the file for you.",
       inputSchema: {
-        target: z.enum(["agents_md", "claude_md", "cursor", "brief_inline"]).optional(),
+        target: z.enum(["agents_md", "claude_md", "brief_inline", "commit_msg", "pr_title", "repo_detect"]).optional(),
         scope: z
           .string()
           .optional()
-          .describe('"workspace" (default), "repo:<name>", or "path:<glob>"'),
+          .describe('"workspace" (default), "product:<id>", "project:<id>", "repo:<slug>", or "path:<glob>"'),
       },
     },
     async ({ target, scope }) => {

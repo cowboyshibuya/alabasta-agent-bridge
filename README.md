@@ -175,8 +175,9 @@ Needs `ALABASTA_SITE_URL` + `ALABASTA_API_KEY` in the environment.
 
 ```bash
 alabasta rules sync                      # write AGENTS.md from the signed rules
-alabasta rules sync --target claude_md   # or CLAUDE.md / cursor
+alabasta rules sync --target claude_md   # writes CLAUDE.md
 alabasta rules sync --scope repo:web     # workspace rules + this repo's rules
+alabasta rules sync --product <id>       # workspace + product rules
 alabasta rules sync --check              # exit 1 if the on-disk digest has drifted
 ```
 

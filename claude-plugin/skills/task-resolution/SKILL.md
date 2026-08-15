@@ -151,12 +151,12 @@ Fill the structured fields — the model fills the slots, Alabasta renders them:
   must resolve (e.g. an attachment contradicting an approved decision).
 - `relatedEntityUpdates[]`: `{ entityId, proposedChange, note? }` — proposed graph
   updates (e.g. `remove_blocker` on a task you unblocked).
-- `rulesApplied[]`: `{ ruleId, where }` — **required when you changed code and standing
+- `rulesApplied[]`: `{ ruleId, where }` — **required and non-empty whenever you changed code; standing
   rules are in scope.** One entry per rule that actually shaped the work, with where it
   shaped it. Nobody can observe what you attended to inside your prompt; this is the
   only record. Do not pad it with rules you didn't use — a false citation is worse than
   a missing one.
-- `rulesConflicted[]`: `{ ruleId, taskRequirement }` — rules you had to break because the
+- `rulesConflicted[]`: `{ ruleId, taskRequirement }` — **required whenever you changed code** (use `[]` when none); rules you had to break because the
   task required otherwise. Report these; a rule losing to a task is evidence the rule may
   be wrong, and it goes to a human for review.
 - `diffStat` / `commits` / `checks` / `pullRequest`: **do not write these by hand** — pass

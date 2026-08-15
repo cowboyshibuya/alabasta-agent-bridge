@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // alabasta work <TASK> [--agent claude|codex] [--branch] [--print]
-// alabasta rules sync [--target agents_md|claude_md|cursor] [--scope <scope>] [--check]
+// alabasta rules sync [--target agents_md|claude_md] [--scope <scope>] [--product|--project|--repo|--path <ref>] [--check]
 //
 // `work` binds a coding-agent session to an Alabasta task: fetches the task, mints
 // a run id, optionally creates a branch, exports ALABASTA_TASK_ID / ALABASTA_RUN_ID,
@@ -43,7 +43,7 @@ function parseArgs(argv: string[]): Args {
 function die(msg: string): never {
   console.error(`alabasta: ${msg}`);
   console.error(`\nUsage: alabasta work <TASK> [--agent claude|codex] [--branch] [--print]`);
-  console.error(`       alabasta rules sync [--target agents_md|claude_md|cursor] [--scope <scope>] [--check]`);
+  console.error(`       alabasta rules sync [--target agents_md|claude_md] [--scope <scope>] [--product|--project|--repo|--path <ref>] [--check]`);
   process.exit(1);
 }
 
@@ -79,6 +79,7 @@ async function rulesSync(argv: string[]) {
     const a = rest.shift()!;
     if (a === "--target") target = rest.shift() ?? die("--target needs a value");
     else if (a === "--scope") scope = rest.shift() ?? die("--scope needs a value");
+    else if (["--product", "--project", "--repo", "--path"].includes(a)) scope = `${a.slice(2)}:${rest.shift() ?? die(`${a} needs a value`)}`;
     else if (a === "--check") check = true;
     else die(`Unknown argument: ${a}`);
   }
