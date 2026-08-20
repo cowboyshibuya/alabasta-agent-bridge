@@ -143,10 +143,8 @@ def main():
     block(
         f"You edited code for Alabasta task {task} but haven't recorded a resolution. "
         "Before finishing, call alabasta_submit_task_resolution with the structured fields "
-        "(outcome, summary, changes, verification, notVerified, limitations, deferred, "
-        "references) — or alabasta_report_blocker if you couldn't complete it. "
-        "Include rulesApplied when standing rules are in scope, and rulesConflicted for any "
-        "you had to break. See the task-resolution skill for the format."
+        "(outcome, summary, changes, verification, notVerified, limitations) — or "
+        "alabasta_report_blocker if you couldn't complete it."
     )
 
 

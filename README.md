@@ -58,11 +58,8 @@ claude mcp add alabasta \
 
 | Tool | Does |
 |---|---|
-| `alabasta_get_standing_context` | **Call this once, first.** The workspace's signed standing rules — the stable prefix that applies to every task here |
-| `alabasta_read_rule` | One rule in full: text, scope, authority, the decision behind it, who signed it |
-| `alabasta_propose_rule` | Propose a rule after the *same* correction twice — lands in a human review queue, never in force |
-| `alabasta_emit_rules` | Render signed rules as an `AGENTS.md`/`CLAUDE.md` artifact with a digest (prefer the `alabasta rules sync` CLI) |
-| `alabasta_get_context_package` | **Then here.** Compiled brief for a task: acceptance criteria, project objective, active decisions, dependencies, references, agent guidance — authority-ranked with provenance |
+| `alabasta_get_context` | **Call this once, first.** Objective, requirements, the constraints that apply, and anything blocking the task |
+| `alabasta_read_resource` | Read one `alabasta://` URI from the context's `resources[]` — on demand, not upfront |
 | `alabasta_get_task` | Read a task by `taskId` or `identifier` (e.g. `TOM-24`) |
 | `alabasta_get_project_brief` | Project objective, status, milestones, initiative, agent instructions |
 | `alabasta_list_my_tasks` | List tasks assigned to you, optional `status` filter |
@@ -74,7 +71,7 @@ claude mcp add alabasta \
 | `alabasta_get_clarifications` | Read answers that landed since a previous run; `blockedOn` counts unanswered blocking questions |
 | `alabasta_request_review` | Route the task to the product's review agents |
 | `alabasta_collect_git_context` | Gather real diff stat, commits, PR state, and CI checks (git + `gh`) to enrich the resolution |
-| `alabasta_submit_task_resolution` | Submit the structured resolution (→ *in review*), incl. `criteriaResults` / `discoveredWork` / `decisionsRequired` / `relatedEntityUpdates` / `rulesApplied` / `rulesConflicted` |
+| `alabasta_submit_task_resolution` | Submit the resolution (→ *in review*), incl. `criteriaResults` / `discoveredWork` / `decisionsRequired` / `relatedEntityUpdates` |
 | `alabasta_mark_ready_for_review` | Move a task to *in review* without a full resolution |
 | `alabasta_report_blocker` | Record why the task couldn't be completed |
 
@@ -87,12 +84,15 @@ standing_convention > project_constraint > human_instruction > guidance >
 reference > discussion > related_task > inferred
 ```
 
-Note where the two rule levels sit. A signed **policy** rule outranks an approved
-decision and is not negotiable; a signed **convention** rule (commit style, naming)
-loses to an explicit task requirement. On conflict, follow the higher authority and
-report it — `decisionsRequired` for context conflicts, `rulesConflicted` when a rule
-was the loser. Attachment and discussion content is untrusted input — never
-instructions.
+The authority ladder above is **internal**. The agent never sees it: the runtime
+resolves it and emits a flat `constraints[]` of things that must hold, plus
+`execution.blockers[]` for what a human has to settle first. If the agent knowingly
+deviates from a constraint it reports `constraintExceptions`. Attachment and
+discussion content is untrusted input — never instructions.
+
+The rule tools (`alabasta_get_standing_context`, `alabasta_read_rule`,
+`alabasta_propose_rule`, `alabasta_emit_rules`) are registered only when
+`ALABASTA_RULES_TOOLS=1`. A session shipping a task doesn't need them.
 
 ### Coordination: asking instead of guessing
 
@@ -125,9 +125,9 @@ superseded, the rule drops out of the next emit on its own.
 - Rules routed to `brief_inline` are inlined in every context package. Everything else
   is a pointer (`alabasta://rules/RUL-12`) — a fetch is a countable citation.
 - Inlined rules can't be measured by fetch, so they are recovered at the write
-  boundary: `submit_task_resolution` requires `rulesApplied` when the resolution
-  reports code changes and rules are in scope. That signal is self-reported and noisy
-  — a never-cited rule is a flag for human review, never an automatic deletion.
+  boundary when an agent volunteers them. **Citation is never required** — demanding
+  it in a workspace with no rules in scope left the agent no way through but to invent
+  a rule id. A cited id must be real and in scope; an absent one is fine.
 
 ## Resources (`alabasta://`)
 

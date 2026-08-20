@@ -164,8 +164,8 @@ async function main() {
 
   const prompt =
     `You are working Alabasta task ${task.identifier}: "${task.title}". ` +
-    `Call alabasta_get_task first, follow the task-resolution skill, and submit a ` +
-    `structured resolution with alabasta_submit_task_resolution before finishing.`;
+    `Call alabasta_get_context first, follow the task-resolution skill, and submit a ` +
+    `resolution with alabasta_submit_task_resolution before finishing.`;
 
   if (args.print) {
     console.log(`export ALABASTA_TASK_ID=${task.taskId}`);

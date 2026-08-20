@@ -18,11 +18,9 @@ Replace `/PATH/TO/...`, `<deployment>`, and the API key first.
    reliably reaches for the tools even before the skill triggers:
 
    > When working an Alabasta task (a task id/identifier is given or
-   > `ALABASTA_TASK_ID` is set), call `alabasta_get_task` before editing, and submit
-   > a structured resolution with `alabasta_submit_task_resolution` before finishing
-   > — code edits always include non-empty `rulesApplied` and a present
-   > `rulesConflicted` array (empty when none). Never edit the task description or mark it done. Follow the
-   > `task-resolution` skill for the format.
+   > `ALABASTA_TASK_ID` is set), call `alabasta_get_context` before editing, and
+   > submit a resolution with `alabasta_submit_task_resolution` before finishing.
+   > Never edit the task description or mark it done.
 
 ## Notes
 
