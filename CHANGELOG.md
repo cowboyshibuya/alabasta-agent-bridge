@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1
+
+- Annotate every MCP tool so clients can distinguish safe reads from additive and
+  state-changing writes.
+- Fail stalled Alabasta HTTP requests with an explicit error after 45 seconds.
+
 ## 0.7.0 — Context Runtime v2
 
 Breaking. Requires an Alabasta backend serving the v2 context package.

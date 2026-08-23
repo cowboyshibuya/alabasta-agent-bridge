@@ -6,6 +6,8 @@ export interface AlabastaConfig {
   apiKey: string; // alab_sk_...
 }
 
+const REQUEST_TIMEOUT_MS = 45_000;
+
 export class AlabastaClient {
   private readonly base: string;
   constructor(private readonly config: AlabastaConfig) {
@@ -16,27 +18,35 @@ export class AlabastaClient {
     path: string,
     body: Record<string, unknown>,
   ): Promise<T> {
-    const res = await fetch(`${this.base}/agent/v1/${path}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${this.config.apiKey}`,
-      },
-      body: JSON.stringify(body ?? {}),
-    });
-    const text = await res.text();
-    let parsed: unknown;
     try {
-      parsed = text ? JSON.parse(text) : {};
-    } catch {
-      parsed = { raw: text };
+      const res = await fetch(`${this.base}/agent/v1/${path}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(body ?? {}),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      const text = await res.text();
+      let parsed: unknown;
+      try {
+        parsed = text ? JSON.parse(text) : {};
+      } catch {
+        parsed = { raw: text };
+      }
+      if (!res.ok) {
+        const message =
+          (parsed as { error?: string })?.error ?? `HTTP ${res.status}`;
+        throw new Error(message);
+      }
+      return parsed as T;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "TimeoutError") {
+        throw new Error("Alabasta request timed out after 45 seconds", { cause: error });
+      }
+      throw error;
     }
-    if (!res.ok) {
-      const message =
-        (parsed as { error?: string })?.error ?? `HTTP ${res.status}`;
-      throw new Error(message);
-    }
-    return parsed as T;
   }
 }
 
