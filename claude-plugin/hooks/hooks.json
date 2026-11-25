@@ -1,18 +1,6 @@
 {
-  "description": "Alabasta agent enforcement — a rules drift check at session start, and a resolution gate on stop.",
+  "description": "Alabasta agent enforcement: a resolution gate on stop.",
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/rules_drift.py\"",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "*",

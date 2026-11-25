@@ -3,7 +3,7 @@
 
 Blocks the agent from finishing a turn when: the session is tied to an Alabasta
 task AND code was edited this session AND no resolution was submitted. It nudges
-the model to call `alabasta_submit_task_resolution` (or report a blocker).
+the model to call `submit_task_resolution` (or report a blocker).
 
 Deterministic backstop for the skill: instructions are followed most of the time,
 this closes the gap on the times they aren't. Fails open — any error or ambiguity
@@ -23,7 +23,7 @@ EDIT_TOOLS = {
     "edit", "write", "multiedit", "notebookedit", "update", "applypatch", "apply_patch",
 }
 # Match the resolution tool regardless of MCP namespacing
-# (e.g. mcp__alabasta__alabasta_submit_task_resolution).
+# (e.g. mcp__plugin_alabasta_alabasta__submit_task_resolution).
 SUBMIT_RE = re.compile(r"submit_task_resolution")
 BLOCKER_RE = re.compile(r"report_blocker")
 IDENTIFIER_RE = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b")
@@ -142,9 +142,9 @@ def main():
 
     block(
         f"You edited code for Alabasta task {task} but haven't recorded a resolution. "
-        "Before finishing, call alabasta_submit_task_resolution with the structured fields "
-        "(outcome, summary, changes, verification, notVerified, limitations) — or "
-        "alabasta_report_blocker if you couldn't complete it."
+        "Before finishing, call submit_task_resolution with the structured fields "
+        "(outcome, summary, changes, verification, notVerified, deferred, references) — or "
+        "report_blocker if you couldn't complete it."
     )
 
 
