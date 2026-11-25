@@ -1,6 +1,6 @@
 {
   "name": "alabasta",
-  "version": "0.3.0",
-  "description": "Connect coding agents to Alabasta tasks: read tasks (MCP), a skill that teaches the resolution protocol, and a Stop hook that enforces a structured resolution before finishing.",
+  "version": "1.0.0",
+  "description": "Connect coding agents to Alabasta: its MCP server (tasks, projects, documents), a skill that teaches the resolution protocol, and a Stop hook that asks for a resolution before finishing.",
   "author": { "name": "Alabasta" }
 }

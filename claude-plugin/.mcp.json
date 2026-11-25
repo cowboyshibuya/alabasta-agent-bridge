@@ -1,11 +1,10 @@
 {
   "mcpServers": {
     "alabasta": {
-      "command": "npx",
-      "args": ["-y", "@alabasta/mcp"],
-      "env": {
-        "ALABASTA_SITE_URL": "${ALABASTA_SITE_URL:-https://fearless-warthog-265.eu-west-1.convex.site}",
-        "ALABASTA_API_KEY": "${ALABASTA_API_KEY}"
+      "type": "http",
+      "url": "${ALABASTA_SITE_URL:-https://fearless-warthog-265.eu-west-1.convex.site}/mcp",
+      "headers": {
+        "Authorization": "Bearer ${ALABASTA_API_KEY}"
       }
     }
   }

@@ -1,17 +1,6 @@
 {
-  "description": "Alabasta agent enforcement for Codex — same hooks as the Claude Code plugin.",
+  "description": "Alabasta agent enforcement for Codex: the same Stop hook as the Claude Code plugin.",
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/PATH/TO/alabasta-agent-bridge/claude-plugin/hooks/rules_drift.py\"",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [

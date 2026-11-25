@@ -1,7 +1,7 @@
 # Alabasta ↔ Codex
 
 Codex's MCP, skill, and hook mechanisms mirror Claude Code's, so this reuses the
-same MCP server, resolution skill, and Stop hook — only the config format differs
+same MCP server (Alabasta's `/mcp`), resolution skill, and Stop hook — only the config format differs
 (TOML + `~/.codex/`). The hook (`claude-plugin/hooks/stop.py`) and skill
 (`claude-plugin/skills/task-resolution`) are agent-agnostic; they live under
 `claude-plugin/` and are referenced here.
@@ -18,8 +18,8 @@ Replace `/PATH/TO/...`, `<deployment>`, and the API key first.
    reliably reaches for the tools even before the skill triggers:
 
    > When working an Alabasta task (a task id/identifier is given or
-   > `ALABASTA_TASK_ID` is set), call `alabasta_get_context` before editing, and
-   > submit a resolution with `alabasta_submit_task_resolution` before finishing.
+   > `ALABASTA_TASK_ID` is set), call `get_item` with the task before editing, and
+   > submit a resolution with `submit_task_resolution` before finishing.
    > Never edit the task description or mark it done.
 
 ## Notes

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0
+
+- The plugin connects to Alabasta 1.0's MCP server (`/mcp`, streamable HTTP) with the same API
+  key, instead of the stdio adapter over `/agent/v1/*`, which 1.0 removed. Codex likewise.
+- The skill uses 1.0's tool names and resolution fields; Git references are gathered by the
+  agent (no `collect_git_context`).
+- Removed the rules drift SessionStart hook: rules are not part of 1.0.
+
 ## 0.7.1
 
 - Annotate every MCP tool so clients can distinguish safe reads from additive and

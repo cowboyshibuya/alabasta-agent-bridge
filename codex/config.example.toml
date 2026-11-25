@@ -2,11 +2,11 @@
 # Merge into ~/.codex/config.toml (user-level) or <repo>/.codex/config.toml
 # (project-level). Replace <deployment>, the API key, and /PATH/TO/... .
 
-# ── Hands: the Alabasta MCP server (same npm package as Claude Code) ──
+# ── Hands: Alabasta's MCP server (streamable HTTP, authenticated by an API key) ──
+# Export ALABASTA_API_KEY=alab_sk_... (Settings > Agents in Alabasta) before starting Codex.
 [mcp_servers.alabasta]
-command = "npx"
-args = ["-y", "@alabasta/mcp"]
-env = { ALABASTA_SITE_URL = "https://fearless-warthog-265.eu-west-1.convex.site", ALABASTA_API_KEY = "alab_sk_..." }
+url = "https://fearless-warthog-265.eu-west-1.convex.site/mcp"
+bearer_token_env_var = "ALABASTA_API_KEY"
 enabled = true
 
 # ── Enable lifecycle hooks (the Stop-hook enforcement is in codex/hooks.json) ──

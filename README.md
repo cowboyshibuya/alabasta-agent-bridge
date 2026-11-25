@@ -1,5 +1,12 @@
 # @alabasta/mcp
 
+> **Alabasta 1.0:** the Claude Code plugin (`claude-plugin/`) and the Codex config now connect
+> straight to Alabasta's MCP server at `https://<deployment>.convex.site/mcp` with the same
+> `alab_sk_` API key, and use its tool names (`get_item`, `submit_task_resolution`, …). The
+> stdio package and CLI described below target the beta's `/agent/v1/*` API, which 1.0 removed;
+> they stop working once a deployment runs 1.0. Rules and the rules drift hook are gone with it.
+
+
 MCP server that connects coding agents (Claude Code, Codex, Cursor, …) to
 [Alabasta](https://alabasta.io) tasks. The agent can read a task, start work, and
 submit a **structured resolution** — what changed, verification, what's
